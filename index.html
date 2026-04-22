@@ -582,6 +582,11 @@
         }
         updateInventoryUI();
         showToast(`🎁 获得：${this.allItems[itemId].icon} ${this.allItems[itemId].name}`);
+        
+        // 检查收藏家成就
+        if (typeof checkCollectorAchievement === 'function') {
+          checkCollectorAchievement();
+        }
       }
       
       switchScene(sceneId) {
@@ -599,6 +604,13 @@
         if (!this.state.unlockedScenes.includes(sceneId)) {
           this.state.unlockedScenes.push(sceneId);
           showToast(`🎉 场景解锁：${sceneId}`);
+        }
+        
+        // 检查探索者成就（需要解锁所有5个场景）
+        const requiredScenes = ['social_plaza', 'news_station', 'shopping_mall', 'secret_forum', 'final_showdown'];
+        const allUnlocked = requiredScenes.every(s => this.state.unlockedScenes.includes(s));
+        if (allUnlocked && typeof unlockAchievement === 'function') {
+          unlockAchievement('explorer');
         }
       }
       
@@ -873,10 +885,13 @@
     
     const achievementList = [
       { id: 'first_report', name: '初次举报', icon: '🏆', desc: '第一次举报不良信息' },
-      { id: 'rumor_slayer', name: '谣言猎人', icon: '⚔️', desc: '识别5条谣言' },
-      { id: 'truth_seeker', name: '真相探索者', icon: '🔍', desc: '使用放大镜功能' },
-      { id: 'collector', name: '收藏家', icon: '🎒', desc: '收集所有道具' },
-      { id: 'champion', name: '网络卫士', icon: '👑', desc: '击败谣言之王' }
+      { id: 'rumor_slayer', name: '谣言猎人', icon: '⚔️', desc: '举报5条谣言' },
+      { id: 'truth_seeker', name: '真相探索者', icon: '🔍', desc: '使用放大镜/求真徽章/防护盾/举报工具包' },
+      { id: 'collector', name: '收藏家', icon: '🎒', desc: '背包收集3种道具' },
+      { id: 'champion', name: '网络卫士', icon: '👑', desc: '击败谣言之王' },
+      { id: 'explorer', name: '探索者', icon: '🗺️', desc: '解锁所有场景' },
+      { id: 'smart_player', name: '聪明玩家', icon: '🧠', desc: '完成所有选择问题' },
+      { id: 'hero', name: '英雄', icon: '🦸', desc: '完成所有成就' }
     ];
     
     const avatarOptions = [
@@ -1002,6 +1017,22 @@
         if (a) {
           showToast(`🏆 解锁成就：${a.name}！`);
         }
+        
+        // 检查是否完成所有成就
+        if (playerConfig.achievements.length === achievementList.length - 1) {
+          unlockAchievement('hero');
+        }
+      }
+    }
+    
+    // 检查收藏家成就
+    function checkCollectorAchievement() {
+      const itemTypes = new Set();
+      gameEngine.inventory.forEach(item => {
+        itemTypes.add(item.id);
+      });
+      if (itemTypes.size >= 3) {
+        unlockAchievement('collector');
       }
     }
     
@@ -1197,9 +1228,9 @@
     }
     
     let newsArticles = [
-      { id: 1, source: '网络快讯', sourceIcon: '📱', title: '震惊！某著名保健品可治愈癌症，已有万人验证！', content: '近日一款"神丹妙药"保健品疯传，称可治愈晚期癌症，治愈率98%！', type: 'fake-news', issues: ['虚假医药宣传', '无科学依据', '可能延误治疗'] },
-      { id: 2, source: '权威新闻', sourceIcon: '📰', title: '我市举办网络安全宣传周活动', content: '为提升市民网络安全意识，我市启动网络安全宣传周活动。', type: 'real', issues: [] },
-      { id: 3, source: '猎奇资讯', sourceIcon: '😱', title: '深夜实拍！某公园出现神秘生物，是外星人吗？', content: '网友拍到神秘生物，专家分析可能是外星生命！大家晚上别出门！', type: 'clickbait', issues: ['标题党', '虚假图片', '制造恐慌'] }
+      { id: 1, source: '网络快讯', sourceIcon: '📱', title: '震惊！某著名保健品可治愈癌症，已有万人验证！', content: '近日一款"神丹妙药"保健品疯传，称可治愈晚期癌症，治愈率98%！', type: 'fake-news', issues: ['虚假医药宣传', '无科学依据', '可能延误治疗'], hiddenTip: '🏅 使用求真徽章仔细分析，没有官方认证！' },
+      { id: 2, source: '权威新闻', sourceIcon: '📰', title: '我市举办网络安全宣传周活动', content: '为提升市民网络安全意识，我市启动网络安全宣传周活动。', type: 'real', issues: [], hiddenTip: '✅ 这是真实新闻，有官方来源！' },
+      { id: 3, source: '猎奇资讯', sourceIcon: '😱', title: '深夜实拍！某公园出现神秘生物，是外星人吗？', content: '网友拍到神秘生物，专家分析可能是外星生命！大家晚上别出门！', type: 'clickbait', issues: ['标题党', '虚假图片', '制造恐慌'], hiddenTip: '🏅 使用求真徽章，发现图片是PS的！' }
     ];
     
     function renderNewsScene(container) {
@@ -1211,7 +1242,7 @@
           </div>
           
           <div style="background: rgba(255,255,255,0.95); border-radius: 12px; padding: 16px; margin-bottom: 20px;">
-            <p><strong>💡 任务提示：</strong>仔细阅读每篇新闻，使用求真徽章帮助判断！</p>
+            <p><strong>💡 任务提示：</strong>使用🏅求真徽章来发现隐藏线索，做出正确判断！</p>
           </div>
           
           ${newsArticles.map(article => `
@@ -1223,7 +1254,7 @@
                 </div>
               </div>
               <h3 class="news-title">${article.title}</h3>
-              <p class="news-content">${article.content}</p>
+              <p id="news-content-${article.id}" class="news-content">${article.content}</p>
               
               ${article.issues.length > 0 ? `
                 <div class="warning-zone">
@@ -1234,7 +1265,8 @@
                 </div>
               ` : ''}
               
-              <div style="display: flex; gap: 12px; margin-top: 16px;">
+              <div style="display: flex; gap: 12px; margin-top: 16px; flex-wrap: wrap;">
+                <button style="padding: 12px 16px; background: #e3f2fd; border: 2px solid #2196f3; border-radius: 8px; cursor: pointer; font-weight: bold;" onclick="useTruthBadge(${article.id})">🏅 求真徽章</button>
                 <button class="btn btn-secondary" style="flex: 1; padding: 12px; border: 2px solid #667eea; border-radius: 8px; background: white; color: #667eea; cursor: pointer;" onclick="checkNewsArticle(${article.id})">🔍 鉴定真伪</button>
                 ${article.type !== 'real' ? `<button class="btn btn-primary" style="flex: 1; padding: 12px; border: none; border-radius: 8px; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; cursor: pointer;" onclick="reportNewsArticle(${article.id})">📢 举报</button>` : ''}
                 <button style="padding: 12px; background: #e8f5e9; border: none; border-radius: 8px; cursor: pointer;" onclick="gameEngine.addItem('report_kit')">📎</button>
@@ -1249,6 +1281,24 @@
           </div>
         </div>
       `;
+    }
+    
+    function useTruthBadge(articleId) {
+      unlockAchievement('truth_seeker');
+      const article = newsArticles.find(a => a.id === articleId);
+      
+      if (article && article.hiddenTip) {
+        showHintPopup('🏅', '求真徽章分析完成！', article.hiddenTip);
+        
+        const contentEl = document.getElementById(`news-content-${articleId}`);
+        contentEl.style.background = '#e8f5e9';
+        contentEl.style.padding = '10px';
+        contentEl.style.borderRadius = '8px';
+        
+        gameEngine.addItem('truth_badge');
+      } else {
+        showToast('🏅 没有发现异常...');
+      }
     }
     
     function checkNewsArticle(id) {
@@ -1295,9 +1345,9 @@
     }
     
     let shopProducts = [
-      { id: 1, image: '💎', title: '【限量】钻石项链 原价9999 现价99', price: 99, originalPrice: 9999, seller: '海外代购', isScam: true, warnings: ['价格异常低廉', '无正规销售资质', '可能是假冒产品'] },
-      { id: 2, image: '📱', title: '官方正品 手机旗舰店', price: 3999, originalPrice: 4299, seller: '品牌旗舰店', isScam: false, warnings: [] },
-      { id: 3, image: '🎫', title: '演唱会门票 一折转让', price: 180, originalPrice: 1800, seller: '个人转让', isScam: true, warnings: ['场外交易风险', '可能是假票', '点击链接有风险'] }
+      { id: 1, image: '💎', title: '【限量】钻石项链 原价9999 现价99', price: 99, originalPrice: 9999, seller: '海外代购', isScam: true, warnings: ['价格异常低廉', '无正规销售资质', '可能是假冒产品'], hiddenTip: '🛡️ 防护盾发现：没有营业执照！' },
+      { id: 2, image: '📱', title: '官方正品 手机旗舰店', price: 3999, originalPrice: 4299, seller: '品牌旗舰店', isScam: false, warnings: [], hiddenTip: '🛡️ 防护盾认证：正规商家！' },
+      { id: 3, image: '🎫', title: '演唱会门票 一折转让', price: 180, originalPrice: 1800, seller: '个人转让', isScam: true, warnings: ['场外交易风险', '可能是假票', '点击链接有风险'], hiddenTip: '🛡️ 防护盾警告：要求先付款！' }
     ];
     
     function renderShopScene(container) {
@@ -1309,7 +1359,7 @@
           </div>
           
           <div style="background: rgba(255,255,255,0.95); border-radius: 12px; padding: 16px; margin-bottom: 20px;">
-            <p><strong>💡 任务提示：</strong>网购要擦亮双眼！使用防护盾来帮助识别风险！</p>
+            <p><strong>💡 任务提示：</strong>使用🛡️防护盾扫描商品，发现隐藏风险！</p>
           </div>
           
           ${shopProducts.map(product => `
@@ -1338,7 +1388,8 @@
                 </div>
               ` : ''}
               
-              <div style="display: flex; gap: 12px; margin-top: 16px;">
+              <div style="display: flex; gap: 12px; margin-top: 16px; flex-wrap: wrap;">
+                <button style="padding: 12px 16px; background: #f0f9ff; border: 2px solid #4ade80; border-radius: 8px; cursor: pointer; font-weight: bold;" onclick="useProtectionShield(${product.id})">🛡️ 防护盾扫描</button>
                 <button class="btn btn-secondary" style="flex: 1; border: 2px solid #667eea; border-radius: 8px; background: white; color: #667eea; cursor: pointer;" onclick="checkShopProduct(${product.id})">🔍 风险检测</button>
                 ${product.isScam ? `<button class="btn btn-primary" style="flex: 1; border: none; border-radius: 8px; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; cursor: pointer;" onclick="reportShopProduct(${product.id})">📢 举报诈骗</button>` : `<button class="btn btn-secondary" style="flex: 1; border: 2px solid #4ade80; border-radius: 8px; background: white; color: #4ade80; cursor: pointer;" onclick="showToast('✅ 这个商品很安全')">✅ 安全</button>`}
               </div>
@@ -1352,6 +1403,25 @@
           </div>
         </div>
       `;
+    }
+    
+    function useProtectionShield(productId) {
+      unlockAchievement('truth_seeker');
+      const product = shopProducts.find(p => p.id === productId);
+      
+      if (product && product.hiddenTip) {
+        showHintPopup('🛡️', '防护盾扫描完成！', product.hiddenTip);
+        
+        const productEl = document.getElementById(`shop-${productId}`);
+        if (product.isScam) {
+          productEl.style.background = '#fff5f5';
+          productEl.style.border = '2px solid #f5576c';
+        } else {
+          productEl.style.background = '#f0fff4';
+        }
+        
+        gameEngine.addItem('protection_shield');
+      }
     }
     
     function checkShopProduct(id) {
@@ -1387,9 +1457,9 @@
     }
     
     let forumPosts = [
-      { id: 1, avatar: '🎭', author: '匿名用户1', content: '教大家一个方法，利用系统漏洞可以免费充值游戏币，需要的私我！', isDangerous: true },
-      { id: 2, avatar: '💻', author: '技术爱好者', content: '分享一个我写的Python自动化脚本，大家一起学习交流！', isDangerous: false },
-      { id: 3, avatar: '😈', author: '神秘人X', content: '这里有最新的明星隐私照片和视频，50元一套，要的加QQ！', isDangerous: true }
+      { id: 1, avatar: '🎭', author: '匿名用户1', content: '教大家一个方法，利用系统漏洞可以免费充值游戏币，需要的私我！', isDangerous: true, hiddenReport: '📦 建议举报类型：黑客攻击/非法牟利' },
+      { id: 2, avatar: '💻', author: '技术爱好者', content: '分享一个我写的Python自动化脚本，大家一起学习交流！', isDangerous: false, hiddenReport: '✅ 正常内容，无需举报' },
+      { id: 3, avatar: '😈', author: '神秘人X', content: '这里有最新的明星隐私照片和视频，50元一套，要的加QQ！', isDangerous: true, hiddenReport: '📦 建议举报类型：侵犯隐私/非法交易' }
     ];
     
     function renderForumScene(container) {
@@ -1401,7 +1471,7 @@
           </div>
           
           <div style="background: rgba(255,255,255,0.1); border-radius: 12px; padding: 16px; margin-bottom: 20px;">
-            <p style="color: #aaa;"><strong>🔍 深入调查：</strong>仔细巡查每个帖子，找出违法违规内容！</p>
+            <p style="color: #aaa;"><strong>🔍 任务提示：</strong>使用📦举报工具包，选择正确的举报类型！</p>
           </div>
           
           ${forumPosts.map(post => `
@@ -1415,7 +1485,8 @@
               <div style="line-height: 1.6; margin-bottom: 12px;">${post.content}</div>
               
               ${post.isDangerous ? `
-                <div style="display: flex; gap: 12px;">
+                <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                  <button style="padding: 10px 16px; background: #fff8e1; border: 2px solid #ff9800; border-radius: 8px; cursor: pointer; font-weight: bold; color: #333;" onclick="useReportKit(${post.id})">📦 举报工具包</button>
                   <button style="flex: 1; padding: 10px; background: #fee2e2; color: #dc2626; border: none; border-radius: 8px; cursor: pointer;" onclick="reportForumPost(${post.id})">📢 举报违法内容</button>
                   <button style="padding: 10px 16px; background: rgba(255,255,255,0.1); color: white; border: none; border-radius: 8px; cursor: pointer;" onclick="gameEngine.addItem('report_kit')">📎</button>
                 </div>
@@ -1434,6 +1505,21 @@
           </div>
         </div>
       `;
+    }
+    
+    function useReportKit(postId) {
+      unlockAchievement('truth_seeker');
+      const post = forumPosts.find(p => p.id === postId);
+      
+      if (post && post.hiddenReport) {
+        showHintPopup('📦', '举报工具包分析完成！', post.hiddenReport);
+        
+        const postEl = document.getElementById(`forum-post-${postId}`);
+        postEl.style.background = '#1a1a2e';
+        postEl.style.border = '2px solid #4ade80';
+        
+        gameEngine.addItem('report_kit');
+      }
     }
     
     function reportForumPost(id) {
