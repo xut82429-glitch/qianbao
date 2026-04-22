@@ -1091,7 +1091,20 @@
       { id: 3, author: '优惠达人', avatar: '🎁', content: '限时特惠！点击链接领取1000元红包：https://fake-url.com/claim', isPhishing: true, hiddenClue: '⚠️ 链接是假的！小心钓鱼！', comments: [] }
     ];
     
+    // 社交广场任务进度追踪
+    let socialTasks = {
+      magnifierUsed: false,
+      investigated: false,
+      reported: false,
+      commentsReported: 0,
+      requiredComments: 2
+    };
+    
     function renderSocialScene(container) {
+      // 检查任务完成状态
+      const tasksCompleted = socialTasks.magnifierUsed && socialTasks.investigated && 
+                            socialTasks.reported && socialTasks.commentsReported >= socialTasks.requiredComments;
+      
       container.innerHTML = `
         <div style="min-height: 100vh; padding-bottom: 85px;">
           <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 20px;">
@@ -1100,7 +1113,25 @@
           </div>
           
           <div style="background: rgba(255,255,255,0.95); border-radius: 12px; padding: 16px; margin-bottom: 20px;">
-            <p><strong>💡 探索提示：</strong>使用🔍放大镜发现隐藏线索！</p>
+            <p><strong>💡 任务目标：</strong>完成以下所有任务才能推进</p>
+            <div style="margin-top: 12px; display: flex; flex-direction: column; gap: 8px;">
+              <div style="display: flex; align-items: center; gap: 8px; ${socialTasks.magnifierUsed ? 'color: #4ade80;' : 'color: #666;'}">
+                <span>${socialTasks.magnifierUsed ? '✅' : '⭕'}</span>
+                <span>使用真相放大镜发现线索</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 8px; ${socialTasks.investigated ? 'color: #4ade80;' : 'color: #666;'}">
+                <span>${socialTasks.investigated ? '✅' : '⭕'}</span>
+                <span>完成调查题目</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 8px; ${socialTasks.reported ? 'color: #4ade80;' : 'color: #666;'}">
+                <span>${socialTasks.reported ? '✅' : '⭕'}</span>
+                <span>举报不良帖子</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 8px; ${socialTasks.commentsReported >= socialTasks.requiredComments ? 'color: #4ade80;' : 'color: #666;'}">
+                <span>${socialTasks.commentsReported >= socialTasks.requiredComments ? '✅' : '⭕'}</span>
+                <span>举报不良评论 (${socialTasks.commentsReported}/${socialTasks.requiredComments})</span>
+              </div>
+            </div>
           </div>
           
           <div id="socialPosts">
@@ -1116,9 +1147,15 @@
                 </div>
                 
                 <div style="display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap;">
-                  <button style="padding: 10px 16px; background: #fff9c4; border: 2px solid #ffd700; border-radius: 8px; cursor: pointer; font-weight: bold;" onclick="useMagnifier(${post.id})">🔍 真相放大镜</button>
-                  <button style="padding: 10px 16px; background: #f0f4ff; border: none; border-radius: 8px; cursor: pointer;" onclick="investigateSocialPost(${post.id})">� 调查</button>
-                  <button style="padding: 10px 16px; background: #fee2e2; border: none; border-radius: 8px; cursor: pointer;" onclick="reportSocialPost(${post.id})">📢 举报</button>
+                  <button style="padding: 10px 16px; background: #fff9c4; border: 2px solid #ffd700; border-radius: 8px; cursor: pointer; font-weight: bold; ${socialTasks.magnifierUsed ? 'opacity: 0.6;' : ''}" onclick="useMagnifier(${post.id})" ${socialTasks.magnifierUsed ? 'disabled' : ''}>
+                    ${socialTasks.magnifierUsed ? '✅ ' : ''}🔍 真相放大镜
+                  </button>
+                  <button style="padding: 10px 16px; background: #f0f4ff; border: none; border-radius: 8px; cursor: pointer; ${socialTasks.investigated ? 'opacity: 0.6;' : ''}" onclick="investigateSocialPost(${post.id})" ${socialTasks.investigated ? 'disabled' : ''}>
+                    ${socialTasks.investigated ? '✅ ' : ''}🔍 调查
+                  </button>
+                  <button style="padding: 10px 16px; background: #fee2e2; border: none; border-radius: 8px; cursor: pointer; ${socialTasks.reported ? 'opacity: 0.6;' : ''}" onclick="reportSocialPost(${post.id})" ${socialTasks.reported ? 'disabled' : ''}>
+                    ${socialTasks.reported ? '✅ ' : ''}📢 举报
+                  </button>
                   <button style="padding: 10px 16px; background: #e8f5e9; border: none; border-radius: 8px; cursor: pointer;" onclick="gameEngine.addItem('wisdom_scroll')">📎 收集</button>
                 </div>
                 
@@ -1140,8 +1177,11 @@
           </div>
           
           <div style="position: fixed; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.8); padding: 16px;">
-            <button style="width: 100%; padding: 14px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 12px; font-weight: bold; cursor: pointer;" onclick="completeSocialScene()">
-              ✅ 完成广场任务
+            <button 
+              style="width: 100%; padding: 14px; border: none; border-radius: 12px; font-weight: bold; cursor: ${tasksCompleted ? 'pointer' : 'not-allowed'}; ${tasksCompleted ? 'background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;' : 'background: #ccc; color: #666;'}" 
+              onclick="${tasksCompleted ? 'completeSocialScene()' : 'showSocialTaskHint()'}"
+            >
+              ${tasksCompleted ? '✅ 完成广场任务' : '⛔ 请先完成上方任务'}
             </button>
           </div>
         </div>
@@ -1150,6 +1190,7 @@
     
     function useMagnifier(postId) {
       unlockAchievement('truth_seeker');
+      socialTasks.magnifierUsed = true;
       const post = socialPosts.find(p => p.id === postId);
       
       if (post && post.hiddenClue) {
@@ -1161,13 +1202,16 @@
         
         setTimeout(() => {
           contentEl.style.background = 'none';
+          renderSocialScene(document.getElementById('game-container'));
         }, 2000);
       } else {
         showToast('🔍 这里没有发现线索...');
+        renderSocialScene(document.getElementById('game-container'));
       }
     }
     
     function investigateSocialPost(id) {
+      socialTasks.investigated = true;
       const post = socialPosts.find(p => p.id === id);
       const el = document.getElementById(`post-${id}`);
       
@@ -1181,10 +1225,12 @@
             el.style.borderLeft = '4px solid #f5576c';
             gameEngine.addItem('truth_badge');
           }
+          renderSocialScene(document.getElementById('game-container'));
         });
       } else if (post.isPhishing) {
         showToast('⚠️ 这是钓鱼链接！不要点击！');
         el.style.borderLeft = '4px solid #ffa502';
+        renderSocialScene(document.getElementById('game-container'));
       } else if (post.isSensitive) {
         showChoiceDialog('🛡️', '这里面有什么需要保护的？', [
           { text: 'A. 没有敏感信息', correct: false },
@@ -1195,12 +1241,14 @@
             el.style.borderLeft = '4px solid #ffc107';
             gameEngine.addItem('protection_shield');
           }
+          renderSocialScene(document.getElementById('game-container'));
         });
       }
     }
     
     function reportSocialPost(id) {
       unlockAchievement('first_report');
+      socialTasks.reported = true;
       rumorCount++;
       
       if (rumorCount >= 5) {
@@ -1211,14 +1259,21 @@
       el.style.opacity = '0.3';
       showToast('✅ 举报成功！');
       gameEngine.updateProgress(8);
+      renderSocialScene(document.getElementById('game-container'));
     }
     
     function reportSocialComment(id) {
       unlockAchievement('first_report');
+      socialTasks.commentsReported++;
       const el = document.getElementById(`comment-${id}`);
       el.style.opacity = '0.3';
       el.style.textDecoration = 'line-through';
       showToast('✅ 评论已举报！');
+      renderSocialScene(document.getElementById('game-container'));
+    }
+    
+    function showSocialTaskHint() {
+      showToast('⛔ 请先完成所有任务目标！');
     }
     
     function completeSocialScene() {
