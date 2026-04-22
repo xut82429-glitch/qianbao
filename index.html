@@ -865,15 +865,55 @@
       }
     }
     
+    let playerConfig = {
+      name: '清朗特工',
+      avatar: '🕵️',
+      achievements: []
+    };
+    
+    const achievementList = [
+      { id: 'first_report', name: '初次举报', icon: '🏆', desc: '第一次举报不良信息' },
+      { id: 'rumor_slayer', name: '谣言猎人', icon: '⚔️', desc: '识别5条谣言' },
+      { id: 'truth_seeker', name: '真相探索者', icon: '🔍', desc: '使用放大镜功能' },
+      { id: 'collector', name: '收藏家', icon: '🎒', desc: '收集所有道具' },
+      { id: 'champion', name: '网络卫士', icon: '👑', desc: '击败谣言之王' }
+    ];
+    
+    const avatarOptions = [
+      { id: '🕵️', name: '侦探' },
+      { id: '👮', name: '警察' },
+      { id: '🦸', name: '超级英雄' },
+      { id: '🥷', name: '忍者' },
+      { id: '🧙', name: '法师' },
+      { id: '🤖', name: '机器人' }
+    ];
+    
+    let rumorCount = 0;
+    
     function renderStartScene(container) {
       container.innerHTML = `
-        <div class="scene-start" style="text-align: center; padding-top: 40px;">
-          <div style="width: 120px; height: 120px; margin: 0 auto 30px; background: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 60px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); animation: pulse 2s infinite;">
-            🛡️
+        <div class="scene-start" style="text-align: center; padding-top: 30px;">
+          <div style="margin-bottom: 30px;">
+            <div id="player-avatar" style="width: 120px; height: 120px; margin: 0 auto 20px; background: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 60px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); cursor: pointer; animation: pulse 2s infinite;" onclick="showAvatarSelector()">
+              ${playerConfig.avatar}
+            </div>
+            <input type="text" id="player-name" value="${playerConfig.name}" 
+                   style="width: 200px; padding: 12px; border: none; border-radius: 10px; text-align: center; font-size: 18px; font-weight: bold; background: rgba(255,255,255,0.9);"
+                   onchange="updatePlayerName()">
           </div>
+          
           <h1 style="color: white; font-size: 32px; font-weight: bold; margin-bottom: 10px; text-shadow: 0 2px 10px rgba(0,0,0,0.2);">谣言终结者</h1>
           <p style="color: rgba(255,255,255,0.9); font-size: 20px; margin-bottom: 10px;">清朗特工</p>
-          <p style="color: rgba(255,255,255,0.8); font-size: 16px; margin-bottom: 40px;">每一件举报，都是共治的力量</p>
+          <p style="color: rgba(255,255,255,0.8); font-size: 16px; margin-bottom: 30px;">每一件举报，都是共治的力量</p>
+          
+          <div style="display: flex; gap: 10px; justify-content: center; margin-bottom: 30px;">
+            <button class="btn btn-icon" onclick="showAchievements()" style="padding: 10px 16px; font-size: 14px; background: rgba(255,255,255,0.2); color: white;">
+              🏅 成就 (${playerConfig.achievements.length}/${achievementList.length})
+            </button>
+            <button class="btn btn-icon" onclick="openInventory()" style="padding: 10px 16px; font-size: 14px; background: rgba(255,255,255,0.2); color: white;">
+              🎒 背包
+            </button>
+          </div>
           
           <div style="background: rgba(255,255,255,0.95); border-radius: 16px; padding: 24px; margin-bottom: 30px; text-align: left;">
             <div style="font-weight: bold; font-size: 18px; margin-bottom: 16px; color: #667eea;">📋 任务简报</div>
@@ -890,12 +930,79 @@
             <button class="btn btn-primary btn-large" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); box-shadow: 0 4px 15px rgba(240,147,251,0.4);" onclick="gameEngine.switchScene('map')">
               🚀 开始行动
             </button>
-            <button class="btn btn-secondary" style="border: 2px solid #667eea; background: white; color: #667eea;" onclick="showHintPopup('🎮', '新手教程', '1. 点击右下角🎒打开背包\\n2. 收集并使用道具解决问题\\n3. 在场景中探索和互动\\n4. 完成所有任务通关！')">
+            <button class="btn btn-secondary" style="border: 2px solid #667eea; background: white; color: #667eea;" onclick="showHintPopup('🎮', '新手教程', '1. 点击🎒打开背包\\n2. 点击头像更换角色\\n3. 收集道具解锁成就\\n4. 使用放大镜发现隐藏线索\\n5. 完成所有任务通关！')">
               📖 游戏教程
             </button>
           </div>
         </div>
       `;
+    }
+    
+    function showAvatarSelector() {
+      let html = `
+        <div style="text-align: center;">
+          <p style="margin-bottom: 20px;">选择你的特工形象：</p>
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
+            ${avatarOptions.map(a => `
+              <div style="padding: 15px; background: ${playerConfig.avatar === a.id ? '#e0e8ff' : '#f8f9fa'}; border-radius: 10px; cursor: pointer; font-size: 36px;" onclick="selectAvatar('${a.id}')">
+                ${a.id}
+                <div style="font-size: 12px; margin-top: 5px;">${a.name}</div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `;
+      showChoiceDialog('🎭', '选择角色', [{ text: '确定', correct: true }], () => {});
+      
+      setTimeout(() => {
+        document.querySelector('.choice-container').innerHTML = html;
+      }, 50);
+    }
+    
+    function selectAvatar(avatar) {
+      playerConfig.avatar = avatar;
+      document.getElementById('player-avatar').innerHTML = avatar;
+      renderStartScene(document.getElementById('app'));
+    }
+    
+    function updatePlayerName() {
+      playerConfig.name = document.getElementById('player-name').value;
+    }
+    
+    function showAchievements() {
+      let html = '<div style="text-align: center;">';
+      
+      achievementList.forEach(a => {
+        const unlocked = playerConfig.achievements.includes(a.id);
+        html += `
+          <div style="display: flex; align-items: center; gap: 12px; padding: 12px; background: ${unlocked ? '#e8f5e9' : '#f0f0f0'}; border-radius: 10px; margin-bottom: 10px;">
+            <span style="font-size: 28px; opacity: ${unlocked ? '1' : '0.3'};">${a.icon}</span>
+            <div style="text-align: left;">
+              <div style="font-weight: bold;">${a.name}</div>
+              <div style="font-size: 12px; color: #666;">${a.desc}</div>
+            </div>
+            ${unlocked ? '<span style="color: #4ade80; font-weight: bold; margin-left: auto;">✅</span>' : '<span style="color: #aaa; margin-left: auto;">🔒</span>'}
+          </div>
+        `;
+      });
+      
+      html += '</div>';
+      
+      showChoiceDialog('🏅', '成就墙', [{ text: '关闭', correct: true }], () => {});
+      
+      setTimeout(() => {
+        document.querySelector('.choice-container').innerHTML = html;
+      }, 50);
+    }
+    
+    function unlockAchievement(id) {
+      if (!playerConfig.achievements.includes(id)) {
+        playerConfig.achievements.push(id);
+        const a = achievementList.find(x => x.id === id);
+        if (a) {
+          showToast(`🏆 解锁成就：${a.name}！`);
+        }
+      }
     }
     
     function renderMapScene(container) {
@@ -944,13 +1051,13 @@
     }
     
     let socialPosts = [
-      { id: 1, author: '消息通', avatar: '📢', content: '重大消息！今晚24点全市将断网维护，大家提前做好准备！', isRumor: true, comments: [
+      { id: 1, author: '消息通', avatar: '📢', content: '重大消息！今晚24点全市将断网维护，大家提前做好准备！', isRumor: true, hiddenClue: '⚠️ 官方没发布此消息！来源可疑！', comments: [
         { id: 1, user: '暴躁小王', avatar: '😤', text: '真的假的？太突然了！', bad: false },
         { id: 2, user: '黑粉头子', avatar: '👿', text: '小编脑子有病吧，这种假消息也发！', bad: true },
         { id: 3, user: '地域黑', avatar: '😠', text: 'XX地方的人就是爱传谣！', bad: true }
       ]},
-      { id: 2, author: '热心市民', avatar: '🏠', content: '求帮忙转发！我朋友的孩子走失了...联系方式：13800138000 张三', isSensitive: true, comments: [] },
-      { id: 3, author: '优惠达人', avatar: '🎁', content: '限时特惠！点击链接领取1000元红包：https://fake-url.com/claim', isPhishing: true, comments: [] }
+      { id: 2, author: '热心市民', avatar: '🏠', content: '求帮忙转发！我朋友的孩子走失了...联系方式：13800138000 张三', isSensitive: true, hiddenClue: '⚠️ 泄露个人隐私，小心！', comments: [] },
+      { id: 3, author: '优惠达人', avatar: '🎁', content: '限时特惠！点击链接领取1000元红包：https://fake-url.com/claim', isPhishing: true, hiddenClue: '⚠️ 链接是假的！小心钓鱼！', comments: [] }
     ];
     
     function renderSocialScene(container) {
@@ -962,7 +1069,7 @@
           </div>
           
           <div style="background: rgba(255,255,255,0.95); border-radius: 12px; padding: 16px; margin-bottom: 20px;">
-            <p><strong>💡 探索提示：</strong>点击可疑内容进行识别！别忘了使用背包中的道具！</p>
+            <p><strong>💡 探索提示：</strong>使用🔍放大镜发现隐藏线索！</p>
           </div>
           
           <div id="socialPosts">
@@ -973,10 +1080,13 @@
                   <span style="font-weight: bold;">${post.author}</span>
                   ${post.isRumor ? '<span style="background: #ffd700; color: #333; padding: 4px 10px; border-radius: 8px; font-size: 12px; font-weight: bold;">⚠️ 可疑</span>' : ''}
                 </div>
-                <div style="line-height: 1.7; margin-bottom: 16px;">${post.content}</div>
+                <div id="post-content-${post.id}" style="line-height: 1.7; margin-bottom: 16px; position: relative;">
+                  ${post.content}
+                </div>
                 
-                <div style="display: flex; gap: 12px; margin-bottom: 16px;">
-                  <button style="padding: 10px 16px; background: #f0f4ff; border: none; border-radius: 8px; cursor: pointer;" onclick="investigateSocialPost(${post.id})">🔍 调查</button>
+                <div style="display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap;">
+                  <button style="padding: 10px 16px; background: #fff9c4; border: 2px solid #ffd700; border-radius: 8px; cursor: pointer; font-weight: bold;" onclick="useMagnifier(${post.id})">🔍 真相放大镜</button>
+                  <button style="padding: 10px 16px; background: #f0f4ff; border: none; border-radius: 8px; cursor: pointer;" onclick="investigateSocialPost(${post.id})">� 调查</button>
                   <button style="padding: 10px 16px; background: #fee2e2; border: none; border-radius: 8px; cursor: pointer;" onclick="reportSocialPost(${post.id})">📢 举报</button>
                   <button style="padding: 10px 16px; background: #e8f5e9; border: none; border-radius: 8px; cursor: pointer;" onclick="gameEngine.addItem('wisdom_scroll')">📎 收集</button>
                 </div>
@@ -1005,6 +1115,25 @@
           </div>
         </div>
       `;
+    }
+    
+    function useMagnifier(postId) {
+      unlockAchievement('truth_seeker');
+      const post = socialPosts.find(p => p.id === postId);
+      
+      if (post && post.hiddenClue) {
+        showHintPopup('🔍', '发现隐藏线索！', post.hiddenClue);
+        
+        const contentEl = document.getElementById(`post-content-${postId}`);
+        contentEl.style.animation = 'pulse 0.5s';
+        contentEl.style.background = '#fff9c4';
+        
+        setTimeout(() => {
+          contentEl.style.background = 'none';
+        }, 2000);
+      } else {
+        showToast('🔍 这里没有发现线索...');
+      }
     }
     
     function investigateSocialPost(id) {
@@ -1040,6 +1169,13 @@
     }
     
     function reportSocialPost(id) {
+      unlockAchievement('first_report');
+      rumorCount++;
+      
+      if (rumorCount >= 5) {
+        unlockAchievement('rumor_slayer');
+      }
+      
       const el = document.getElementById(`post-${id}`);
       el.style.opacity = '0.3';
       showToast('✅ 举报成功！');
@@ -1047,6 +1183,7 @@
     }
     
     function reportSocialComment(id) {
+      unlockAchievement('first_report');
       const el = document.getElementById(`comment-${id}`);
       el.style.opacity = '0.3';
       el.style.textDecoration = 'line-through';
@@ -1425,6 +1562,7 @@
     }
     
     function bossVictory() {
+      unlockAchievement('champion');
       addCombatLog('🎉 胜利！谣言之王被击败了！');
       
       setTimeout(() => {
@@ -1436,13 +1574,14 @@
             <div style="background: white; border-radius: 24px; padding: 40px; max-width: 420px; width: 100%;">
               <div style="font-size: 80px; margin-bottom: 20px;">🏆</div>
               <h1 style="color: #667eea; font-size: 32px; margin-bottom: 16px;">恭喜通关！</h1>
-              <p style="color: #666; margin-bottom: 24px;">你已成功击败谣言之王，获得"网络清朗卫士"称号！</p>
+              <p style="color: #666; margin-bottom: 24px;">${playerConfig.name}，你已成功击败谣言之王！</p>
               
               <div style="background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%); border-radius: 16px; padding: 24px; margin-bottom: 24px;">
                 <h3 style="color: #c0392b; margin-bottom: 16px;">📜 荣誉证书</h3>
                 <p style="color: #333; line-height: 1.8;">
-                  特工同志：<br>
-                  在本次"清朗行动"中表现优异，成功完成各项任务，为净化网络空间作出重要贡献。
+                  ${playerConfig.avatar} ${playerConfig.name}同志：<br><br>
+                  在本次"清朗行动"中表现优异，成功完成各项任务，为净化网络空间作出重要贡献。<br><br>
+                  特授予"网络清朗卫士"称号！
                 </p>
               </div>
               
