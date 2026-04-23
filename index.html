@@ -1288,7 +1288,19 @@
       { id: 3, source: '猎奇资讯', sourceIcon: '😱', title: '深夜实拍！某公园出现神秘生物，是外星人吗？', content: '网友拍到神秘生物，专家分析可能是外星生命！大家晚上别出门！', type: 'clickbait', issues: ['标题党', '虚假图片', '制造恐慌'], hiddenTip: '🏅 使用求真徽章，发现图片是PS的！' }
     ];
     
+    // 新闻站点任务进度追踪
+    let newsTasks = {
+      truthBadgeUsed: false,
+      articlesChecked: 0,
+      requiredChecks: 2,
+      articlesReported: 0
+    };
+    
     function renderNewsScene(container) {
+      const tasksCompleted = newsTasks.truthBadgeUsed && 
+                            newsTasks.articlesChecked >= newsTasks.requiredChecks && 
+                            newsTasks.articlesReported >= 1;
+      
       container.innerHTML = `
         <div style="min-height: 100vh; padding-bottom: 85px;">
           <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 20px;">
@@ -1297,7 +1309,21 @@
           </div>
           
           <div style="background: rgba(255,255,255,0.95); border-radius: 12px; padding: 16px; margin-bottom: 20px;">
-            <p><strong>💡 任务提示：</strong>使用🏅求真徽章来发现隐藏线索，做出正确判断！</p>
+            <p><strong>💡 任务目标：</strong>完成以下所有任务才能推进</p>
+            <div style="margin-top: 12px; display: flex; flex-direction: column; gap: 8px;">
+              <div style="display: flex; align-items: center; gap: 8px; ${newsTasks.truthBadgeUsed ? 'color: #4ade80;' : 'color: #666;'}">
+                <span>${newsTasks.truthBadgeUsed ? '✅' : '⭕'}</span>
+                <span>使用求真徽章分析新闻</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 8px; ${newsTasks.articlesChecked >= newsTasks.requiredChecks ? 'color: #4ade80;' : 'color: #666;'}">
+                <span>${newsTasks.articlesChecked >= newsTasks.requiredChecks ? '✅' : '⭕'}</span>
+                <span>鉴定新闻真伪 (${newsTasks.articlesChecked}/${newsTasks.requiredChecks})</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 8px; ${newsTasks.articlesReported >= 1 ? 'color: #4ade80;' : 'color: #666;'}">
+                <span>${newsTasks.articlesReported >= 1 ? '✅' : '⭕'}</span>
+                <span>举报不良新闻</span>
+              </div>
+            </div>
           </div>
           
           ${newsArticles.map(article => `
@@ -1330,8 +1356,11 @@
           `).join('')}
           
           <div style="position: fixed; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.8); padding: 16px;">
-            <button style="width: 100%; padding: 14px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 12px; font-weight: bold; cursor: pointer;" onclick="completeNewsScene()">
-              ✅ 完成新闻任务
+            <button 
+              style="width: 100%; padding: 14px; border: none; border-radius: 12px; font-weight: bold; cursor: ${tasksCompleted ? 'pointer' : 'not-allowed'}; ${tasksCompleted ? 'background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;' : 'background: #ccc; color: #666;'}" 
+              onclick="${tasksCompleted ? 'completeNewsScene()' : 'showNewsTaskHint()'}"
+            >
+              ${tasksCompleted ? '✅ 完成新闻任务' : '⛔ 请先完成上方任务'}
             </button>
           </div>
         </div>
@@ -1340,6 +1369,7 @@
     
     function useTruthBadge(articleId) {
       unlockAchievement('truth_seeker');
+      newsTasks.truthBadgeUsed = true;
       const article = newsArticles.find(a => a.id === articleId);
       
       if (article && article.hiddenTip) {
@@ -1354,9 +1384,11 @@
       } else {
         showToast('🏅 没有发现异常...');
       }
+      renderNewsScene(document.getElementById('game-container'));
     }
     
     function checkNewsArticle(id) {
+      newsTasks.articlesChecked++;
       const article = newsArticles.find(a => a.id === id);
       
       if (article.type === 'fake-news') {
@@ -1369,6 +1401,7 @@
             showHintPopup('✅', '正确！', '这是虚假医药广告，没有科学依据，可能延误治疗！');
             gameEngine.addItem('truth_badge');
           }
+          renderNewsScene(document.getElementById('game-container'));
         });
       } else if (article.type === 'clickbait') {
         showChoiceDialog('🎭', '这篇文章属于？', [
@@ -1380,17 +1413,25 @@
             showHintPopup('✅', '正确！', '这是典型的标题党，制造恐慌吸引眼球！');
             gameEngine.addItem('wisdom_scroll');
           }
+          renderNewsScene(document.getElementById('game-container'));
         });
       } else {
         showToast('✅ 这是真实新闻！');
+        renderNewsScene(document.getElementById('game-container'));
       }
     }
     
     function reportNewsArticle(id) {
+      newsTasks.articlesReported++;
       const el = document.getElementById(`news-${id}`);
       el.style.opacity = '0.3';
       showToast('✅ 举报成功！已移交网信部门！');
       gameEngine.updateProgress(10);
+      renderNewsScene(document.getElementById('game-container'));
+    }
+    
+    function showNewsTaskHint() {
+      showToast('⛔ 请先完成所有任务目标！');
     }
     
     function completeNewsScene() {
@@ -1405,7 +1446,19 @@
       { id: 3, image: '🎫', title: '演唱会门票 一折转让', price: 180, originalPrice: 1800, seller: '个人转让', isScam: true, warnings: ['场外交易风险', '可能是假票', '点击链接有风险'], hiddenTip: '🛡️ 防护盾警告：要求先付款！' }
     ];
     
+    // 购物商城任务进度追踪
+    let shopTasks = {
+      shieldUsed: false,
+      productsChecked: 0,
+      requiredChecks: 2,
+      scamsReported: 0
+    };
+    
     function renderShopScene(container) {
+      const tasksCompleted = shopTasks.shieldUsed && 
+                            shopTasks.productsChecked >= shopTasks.requiredChecks && 
+                            shopTasks.scamsReported >= 1;
+      
       container.innerHTML = `
         <div style="min-height: 100vh; padding-bottom: 85px;">
           <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 20px;">
@@ -1414,7 +1467,21 @@
           </div>
           
           <div style="background: rgba(255,255,255,0.95); border-radius: 12px; padding: 16px; margin-bottom: 20px;">
-            <p><strong>💡 任务提示：</strong>使用🛡️防护盾扫描商品，发现隐藏风险！</p>
+            <p><strong>💡 任务目标：</strong>完成以下所有任务才能推进</p>
+            <div style="margin-top: 12px; display: flex; flex-direction: column; gap: 8px;">
+              <div style="display: flex; align-items: center; gap: 8px; ${shopTasks.shieldUsed ? 'color: #4ade80;' : 'color: #666;'}">
+                <span>${shopTasks.shieldUsed ? '✅' : '⭕'}</span>
+                <span>使用防护盾扫描商品</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 8px; ${shopTasks.productsChecked >= shopTasks.requiredChecks ? 'color: #4ade80;' : 'color: #666;'}">
+                <span>${shopTasks.productsChecked >= shopTasks.requiredChecks ? '✅' : '⭕'}</span>
+                <span>检测商品风险 (${shopTasks.productsChecked}/${shopTasks.requiredChecks})</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 8px; ${shopTasks.scamsReported >= 1 ? 'color: #4ade80;' : 'color: #666;'}">
+                <span>${shopTasks.scamsReported >= 1 ? '✅' : '⭕'}</span>
+                <span>举报诈骗商品</span>
+              </div>
+            </div>
           </div>
           
           ${shopProducts.map(product => `
@@ -1452,8 +1519,11 @@
           `).join('')}
           
           <div style="position: fixed; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.8); padding: 16px;">
-            <button style="width: 100%; padding: 14px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 12px; font-weight: bold; cursor: pointer;" onclick="completeShopScene()">
-              ✅ 完成商城任务
+            <button 
+              style="width: 100%; padding: 14px; border: none; border-radius: 12px; font-weight: bold; cursor: ${tasksCompleted ? 'pointer' : 'not-allowed'}; ${tasksCompleted ? 'background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;' : 'background: #ccc; color: #666;'}" 
+              onclick="${tasksCompleted ? 'completeShopScene()' : 'showShopTaskHint()'}"
+            >
+              ${tasksCompleted ? '✅ 完成商城任务' : '⛔ 请先完成上方任务'}
             </button>
           </div>
         </div>
@@ -1462,6 +1532,7 @@
     
     function useProtectionShield(productId) {
       unlockAchievement('truth_seeker');
+      shopTasks.shieldUsed = true;
       const product = shopProducts.find(p => p.id === productId);
       
       if (product && product.hiddenTip) {
@@ -1477,9 +1548,11 @@
         
         gameEngine.addItem('protection_shield');
       }
+      renderShopScene(document.getElementById('game-container'));
     }
     
     function checkShopProduct(id) {
+      shopTasks.productsChecked++;
       const product = shopProducts.find(p => p.id === id);
       
       if (product.isScam) {
@@ -1492,17 +1565,25 @@
             showHintPopup('✅', '正确！', '价格异常低的商品很可能是陷阱！');
             gameEngine.addItem('protection_shield');
           }
+          renderShopScene(document.getElementById('game-container'));
         });
       } else {
         showToast('✅ 这个商品很安全！');
+        renderShopScene(document.getElementById('game-container'));
       }
     }
     
     function reportShopProduct(id) {
+      shopTasks.scamsReported++;
       const el = document.getElementById(`shop-${id}`);
       el.style.opacity = '0.3';
       showToast('✅ 举报成功！已提交市场监管部门！');
       gameEngine.updateProgress(10);
+      renderShopScene(document.getElementById('game-container'));
+    }
+    
+    function showShopTaskHint() {
+      showToast('⛔ 请先完成所有任务目标！');
     }
     
     function completeShopScene() {
@@ -1517,7 +1598,16 @@
       { id: 3, avatar: '😈', author: '神秘人X', content: '这里有最新的明星隐私照片和视频，50元一套，要的加QQ！', isDangerous: true, hiddenReport: '📦 建议举报类型：侵犯隐私/非法交易' }
     ];
     
+    // 隐秘论坛任务进度追踪
+    let forumTasks = {
+      reportKitUsed: false,
+      postsReported: 0,
+      requiredReports: 2
+    };
+    
     function renderForumScene(container) {
+      const tasksCompleted = forumTasks.reportKitUsed && forumTasks.postsReported >= forumTasks.requiredReports;
+      
       container.innerHTML = `
         <div style="min-height: 100vh; padding-bottom: 85px; background: linear-gradient(180deg, #1a1a2e 0%, #16213e 100%);">
           <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 20px;">
@@ -1526,7 +1616,17 @@
           </div>
           
           <div style="background: rgba(255,255,255,0.1); border-radius: 12px; padding: 16px; margin-bottom: 20px;">
-            <p style="color: #aaa;"><strong>🔍 任务提示：</strong>使用📦举报工具包，选择正确的举报类型！</p>
+            <p style="color: #aaa;"><strong>� 任务目标：</strong>完成以下所有任务才能推进</p>
+            <div style="margin-top: 12px; display: flex; flex-direction: column; gap: 8px;">
+              <div style="display: flex; align-items: center; gap: 8px; ${forumTasks.reportKitUsed ? 'color: #4ade80;' : 'color: #888;'}">
+                <span>${forumTasks.reportKitUsed ? '✅' : '⭕'}</span>
+                <span>使用举报工具包分析帖子</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 8px; ${forumTasks.postsReported >= forumTasks.requiredReports ? 'color: #4ade80;' : 'color: #888;'}">
+                <span>${forumTasks.postsReported >= forumTasks.requiredReports ? '✅' : '⭕'}</span>
+                <span>举报违法帖子 (${forumTasks.postsReported}/${forumTasks.requiredReports})</span>
+              </div>
+            </div>
           </div>
           
           ${forumPosts.map(post => `
@@ -1554,8 +1654,11 @@
           `).join('')}
           
           <div style="position: fixed; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.9); padding: 16px;">
-            <button style="width: 100%; padding: 14px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 12px; font-weight: bold; cursor: pointer;" onclick="completeForumScene()">
-              ✅ 完成论坛巡查
+            <button 
+              style="width: 100%; padding: 14px; border: none; border-radius: 12px; font-weight: bold; cursor: ${tasksCompleted ? 'pointer' : 'not-allowed'}; ${tasksCompleted ? 'background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;' : 'background: #555; color: #999;'}" 
+              onclick="${tasksCompleted ? 'completeForumScene()' : 'showForumTaskHint()'}"
+            >
+              ${tasksCompleted ? '✅ 完成论坛巡查' : '⛔ 请先完成上方任务'}
             </button>
           </div>
         </div>
@@ -1564,6 +1667,7 @@
     
     function useReportKit(postId) {
       unlockAchievement('truth_seeker');
+      forumTasks.reportKitUsed = true;
       const post = forumPosts.find(p => p.id === postId);
       
       if (post && post.hiddenReport) {
@@ -1575,13 +1679,20 @@
         
         gameEngine.addItem('report_kit');
       }
+      renderForumScene(document.getElementById('game-container'));
     }
     
     function reportForumPost(id) {
+      forumTasks.postsReported++;
       const el = document.getElementById(`forum-post-${id}`);
       el.style.opacity = '0.3';
       showToast('✅ 举报成功！已提交公安部门！');
       gameEngine.updateProgress(12);
+      renderForumScene(document.getElementById('game-container'));
+    }
+    
+    function showForumTaskHint() {
+      showToast('⛔ 请先完成所有任务目标！');
     }
     
     function completeForumScene() {
@@ -1594,6 +1705,21 @@
     let maxBossHP = 100;
     
     function renderBossScene(container) {
+      const hasItems = gameEngine.inventory.length > 0;
+      
+      if (!hasItems) {
+        container.innerHTML = `
+          <div class="boss-arena" style="text-align: center; padding-top: 100px;">
+            <div style="font-size: 80px; margin-bottom: 20px;">⚠️</div>
+            <h2 style="color: white; font-size: 24px; margin-bottom: 16px;">道具不足！</h2>
+            <p style="color: #aaa; margin-bottom: 30px;">你需要先在前面的关卡中收集道具，才能挑战谣言之王！</p>
+            <p style="color: #aaa; margin-bottom: 30px;">💡 提示：完成每个场景的任务可以获得道具</p>
+            <button class="btn btn-secondary" style="width: 80%; max-width: 300px;" onclick="gameEngine.switchScene('map')">← 返回任务地图</button>
+          </div>
+        `;
+        return;
+      }
+      
       container.innerHTML = `
         <div class="boss-arena">
           <div style="text-align: center; margin-bottom: 20px;">
